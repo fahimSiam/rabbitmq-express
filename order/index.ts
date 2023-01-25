@@ -43,6 +43,33 @@ app.post("/orders", (req: Request, res: Response) => {
     )
   );
 
+   const transporter = nodemailer.createTransport({
+     host: "smtp.example.com",
+     port: 587,
+     secure: false,
+     auth: {
+       user: "username",
+       pass: "password",
+     },
+   });
+
+   // Start listening for messages on the queue
+   channel.consume("orders", async (data) => {
+     // Parse the message
+     const message = JSON.parse(data.content.toString());
+
+     // Send the email
+     await transporter.sendMail({
+       from: "sender@example.com",
+       to: message.to,
+       subject: message.subject,
+       text: message.body,
+     });
+     console.log("Sent email");
+
+     // Acknowledge the message
+     channel.ack(data);
+   });
   res.send("Order submitted");
 });
 

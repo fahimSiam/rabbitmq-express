@@ -43,6 +43,30 @@ app.post("/orders", (req, res) => {
     console.log("orders index.js");
     // send a message to all the services connected to 'order' queue, add the date to differentiate between them
     channel.sendToQueue("order", Buffer.from(JSON.stringify(Object.assign(Object.assign({}, data), { date: new Date() }))));
+    const transporter = nodemailer.createTransport({
+        host: "smtp.example.com",
+        port: 587,
+        secure: false,
+        auth: {
+            user: "username",
+            pass: "password",
+        },
+    });
+    // Start listening for messages on the queue
+    channel.consume("orders", (data) => __awaiter(void 0, void 0, void 0, function* () {
+        // Parse the message
+        const message = JSON.parse(data.content.toString());
+        // Send the email
+        yield transporter.sendMail({
+            from: "sender@example.com",
+            to: message.to,
+            subject: message.subject,
+            text: message.body,
+        });
+        console.log("Sent email");
+        // Acknowledge the message
+        channel.ack(data);
+    }));
     res.send("Order submitted");
 });
 app.get("*", (req, res) => {
